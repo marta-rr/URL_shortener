@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 import validators
 import schemas
 
-import secrets
+import crud
 from sqlalchemy.orm import Session
 
 import models, schemas
@@ -42,12 +42,7 @@ def forward_to_target_url(
         db: Session = Depends(get_db)
     ):
     #look for an active URL entry with the provided url_key in your database
-    db_url = (
-        db.query(models.URL)
-        .filter(models.URL.key == url_key, models.URL.is_active)
-        .first()
-    )
-    if db_url:
+    if db_url := crud.get_db_url_by_key(db=db, url_key=url_key):
         return RedirectResponse(db_url.target_url)
     else:
         raise_not_found(request)
@@ -60,19 +55,12 @@ def create_url(url: schemas.URLBase, db:Session=Depends(get_db)):
     #when the provided URL isn’t valid
     if not validators.url(url.target_url):
         raise_bad_request(message="Your provided URL is not valid")
-    chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    #provide random strings for key and secret_key.
-    key = ''.join(secrets.choice(chars)for _ in range(5))
-    secret_key= ''.join(secrets.choice(chars) for _ in range(8))
+
     #create a database entry for your target_url.
-    db_url = models.URL(
-        target_url=url.target_url, key=key, secret_key=secret_key
-    )
-    db.add(db_url)
-    db.commit()
-    db.refresh(db_url)
-    #match the required URLInfo schema that you need to return at the end of the function.
-    db_url.url = key
-    db_url.admin_url = secret_key
+    db_url = crud.create_db_url(db=db, url=url)
+    db_url.url = db_url.key
+    db_url.admin_url = db_url.secret_key
+
+    return db_url
 
     return db_url
