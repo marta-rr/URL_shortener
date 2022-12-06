@@ -20,3 +20,11 @@ def create_db_url(db: Session, url: schemas.URLBase) -> models.URL:
     db.commit()
     db.refresh(db_url)
     return db_url
+
+#check your database for an active database entry with the provided secret_key
+def get_db_url_by_secret_key(db: Session, secret_key: str) -> models.URL:
+    return (
+        db.query(models.URL)
+        .filter(models.URL.secret_key == secret_key, models.URL.is_active)
+        .first()
+    )
