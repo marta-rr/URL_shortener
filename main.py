@@ -48,6 +48,7 @@ def forward_to_target_url(
     ):
     #look for an active URL entry with the provided url_key in your database
     if db_url := crud.get_db_url_by_key(db=db, url_key=url_key):
+        crud.update_db_clicks(db=db, db_url=db_url)
         return RedirectResponse(db_url.target_url)
     else:
         raise_not_found(request)
